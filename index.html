@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Эпоха Пепла</title>
+    <link rel="stylesheet" href="core/global.css">
+    <link id="chapter-style" rel="stylesheet" href="">
+</head>
+<body>
+
+    <div id="intro-screen" class="screen active">
+        <div class="intro-content">
+            <h1 class="game-title">ЭПОХА ПЕПЛА</h1>
+            <div id="intro-text-container"></div>
+            <button id="start-btn" class="hidden">Начать путь</button>
+        </div>
+    </div>
+
+    <div id="game-screen" class="screen">
+        
+        <header class="top-bar">
+            <div class="stat-box">❤️ <span id="stat-hp">100</span></div>
+            <div class="stat-box">🪙 <span id="stat-gold">0</span></div>
+            <div class="menu-btn">☰</div>
+        </header>
+
+        <main class="story-container">
+            <div id="scene-image" class="scene-visual"></div>
+            <div id="story-text" class="text-content"></div>
+        </main>
+
+        <footer class="choice-container" id="choices-box">
+            </footer>
+    </div>
+
+    <script src="core/engine.js"></script>
+</body>
+</html>
