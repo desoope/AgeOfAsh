@@ -17,21 +17,63 @@
         </div>
     </div>
 
+    <div id="lore-screen" class="screen">
+        <div class="lore-content">
+            <h2>Предыстория</h2>
+            <div id="lore-text-typing" class="typing-area"></div>
+            <button id="to-game-btn" class="hidden-btn">Продолжить</button>
+        </div>
+    </div>
+
     <div id="game-screen" class="screen">
         
         <header class="top-bar">
             <div class="stat-box">❤️ <span id="stat-hp">100</span></div>
             <div class="stat-box">🪙 <span id="stat-gold">0</span></div>
-            <div class="menu-btn">☰</div>
+            <div class="stat-box">❄️ <span id="stat-cold">0%</span></div>
         </header>
 
-        <main class="story-container">
-            <div id="scene-image" class="scene-visual"></div>
-            <div id="story-text" class="text-content"></div>
+        <main class="story-container" id="story-scroll-area">
+            <div id="history-log"></div>
+            
+            <div id="active-scene" class="scene-block active">
+                <div id="scene-image" class="scene-visual"></div>
+                <div id="typing-text" class="text-content"></div>
+                <div class="choice-container" id="choices-box"></div>
+            </div>
+            
+            <div style="height: 80px;"></div>
         </main>
 
-        <footer class="choice-container" id="choices-box">
-            </footer>
+        <nav class="bottom-nav">
+            <button onclick="Game.ui.toggleModal('inventory')">🎒<br>Инвент.</button>
+            <button onclick="Game.ui.toggleModal('map')">🗺️<br>Карта</button>
+            <button onclick="Game.ui.toggleModal('quests')">📜<br>Квесты</button>
+            <button onclick="Game.ui.toggleModal('skills')">⚔️<br>Навыки</button>
+            <button onclick="Game.ui.toggleModal('journal')">📖<br>Лор</button>
+            <button onclick="Game.ui.toggleModal('settings')">⚙️<br>Опции</button>
+        </nav>
+    </div>
+
+    <div id="modal-overlay" class="modal-overlay hidden" onclick="Game.ui.closeModals()">
+        <div id="modal-inventory" class="modal-window" onclick="event.stopPropagation()">
+            <h3>Инвентарь</h3>
+            <ul id="inventory-list">Пусто</ul>
+        </div>
+        <div id="modal-skills" class="modal-window" onclick="event.stopPropagation()">
+            <h3>Навыки</h3>
+            <div id="skills-list"></div>
+        </div>
+        <div id="modal-journal" class="modal-window" onclick="event.stopPropagation()">
+            <h3>Энциклопедия</h3>
+            <div id="journal-content">Пока нет записей.</div>
+        </div>
+        <div id="modal-settings" class="modal-window" onclick="event.stopPropagation()">
+            <h3>Настройки</h3>
+            <button class="danger-btn" onclick="Game.resetProgress()">Сбросить прогресс</button>
+        </div>
+        <div id="modal-map" class="modal-window"><h3>Карта</h3><p>Карта недоступна в этой локации.</p></div>
+        <div id="modal-quests" class="modal-window"><h3>Квесты</h3><p>Активных заданий нет.</p></div>
     </div>
 
     <script src="core/engine.js"></script>
