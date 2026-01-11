@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Draconic Control Simulator</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+        body {
+            background-color: #000;
+            color: #eee;
+            margin: 0;
+            padding: 0;
+            font-family: 'VT323', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* Симуляция монитора OpenComputers */
+        #monitor {
+            width: 1000px; /* Условное разрешение */
+            height: 600px;
+            background-color: #111111;
+            position: relative;
+            border: 20px solid #333;
+            border-radius: 10px;
+            box-shadow: 0 0 50px rgba(0, 153, 255, 0.2);
+            overflow: hidden;
+            transform-origin: center;
+        }
+
+        /* Сетка реакторов */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            padding: 10px;
+            height: 60%;
+        }
+
+        .card {
+            background-color: #222;
+            border: 1px solid #333;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+
+        .card:active {
+            background-color: #333;
+        }
+
+        .card-header {
+            color: #0099FF;
+            font-size: 24px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .status-text {
+            font-size: 20px;
+        }
+
+        /* Прогресс бары */
+        .bar-container {
+            margin-bottom: 8px;
+        }
+
+        .bar-label {
+            font-size: 18px;
+            margin-bottom: 2px;
+            color: #eee;
+        }
+
+        .bar-bg {
+            height: 16px;
+            background-color: #333;
+            width: 100%;
+            position: relative;
+        }
+
+        .bar-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s linear;
+        }
+
+        .btn-small {
+            background-color: #0099FF;
+            color: #111;
+            text-align: center;
+            padding: 5px;
+            margin-top: 5px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        /* Нижняя панель */
+        .bottom-panel {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 35%;
+            border-top: 2px solid #0099FF;
+            background-color: #181818;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .summary-title {
+            background-color: #111;
+            color: #0099FF;
+            padding: 0 10px;
+            margin-top: -20px;
+            font-size: 24px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            width: 100%;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 28px;
+        }
+
+        /* Детальное окно (Overlay) */
+        #detail-view {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #111;
+            z-index: 10;
+            display: none; /* Скрыто по умолчанию */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .detail-box {
+            width: 80%;
+            height: 80%;
+            background-color: #222;
+            border: 2px solid #444;
+            padding: 20px;
+            position: relative;
+        }
+
+        .detail-title {
+            color: #0099FF;
+            font-size: 40px;
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 10px;
+        }
+
+        .detail-info {
+            font-size: 32px;
+            line-height: 1.5;
+            margin-bottom: 40px;
+        }
+
+        .detail-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .btn-large {
+            padding: 15px 30px;
+            font-size: 30px;
+            cursor: pointer;
+            border: none;
+            min-width: 150px;
+            text-align: center;
+        }
+
+        .btn-back {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #eee;
+            color: #111;
+            padding: 5px 15px;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        /* Утилиты цветов */
+        .c-good { color: #44FF44; background-color: #44FF44; }
+        .c-warn { color: #FFAA00; background-color: #FFAA00; }
+        .c-danger { color: #FF3333; background-color: #FF3333; }
+        .c-shield { background-color: #00FFFF; }
+        .c-fuel { background-color: #00AA00; }
+        .c-accent { background-color: #0099FF; }
+        .bg-good { background-color: #44FF44; color: #000; }
+        .bg-danger { background-color: #FF3333; color: #000; }
+        .bg-accent { background-color: #0099FF; color: #000; }
+        .bg-warn { background-color: #FFAA00; color: #000; }
+        .c-gray { color: #777; }
+
+        /* Setup Wizard */
+        #setup-wizard {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+            color: #00FF00;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+
+<div id="monitor">
+    
+    <div id="setup-wizard">
+        <div style="width: 80%">
+            <div>> СИСТЕМА УПРАВЛЕНИЯ РЕАКТОРАМИ (DesOope OS)</div>
+            <div>> Проверка конфигурации...</div>
+            <div id="setup-log"></div>
+        </div>
+    </div>
+
+    <div class="grid-container" id="cards-container">
+        </div>
+
+    <div class="bottom-panel">
+        <div class="summary-title">ОБЩАЯ СВОДКА СИСТЕМЫ</div>
+        <div class="summary-grid">
+            <div style="color: #eee">АКТИВНЫЕ: <span id="total-active" style="color:#44FF44">0 / 5</span></div>
+            <div style="color: #44FF44">ВЫРАБОТКА: <span id="total-gen">0</span> RF/t</div>
+            <div style="color: #FFAA00">ПОТРЕБЛЕНИЕ: <span id="total-drain">0</span> RF/t</div>
+        </div>
+        <div style="margin-top: 20px; font-size: 28px; color: #44FF44">
+            ЧИСТАЯ ПРИБЫЛЬ: <span id="net-profit">0</span> RF/t
+        </div>
+        <div style="position: absolute; bottom: 5px; font-size: 16px; color: #555;">DesOope Control System v3.0 Mobile</div>
+    </div>
+
+    <div id="detail-view">
+        <div class="detail-box">
+            <div class="btn-back" onclick="closeDetail()">[X] НАЗАД</div>
+            <div class="detail-title" id="d-title">РЕАКТОР #1</div>
+            
+            <div class="detail-info">
+                <div>ТЕМПЕРАТУРА: <span id="d-temp" style="color:#44FF44">0</span> C</div>
+                <div>ЗАРЯД ЩИТА: <span id="d-shield" style="color:#00FFFF">0</span> %</div>
+                <div>ТОПЛИВО: <span id="d-fuel" style="color:#00AA00">100</span> %</div>
+                <div>ГЕНЕРАЦИЯ: <span id="d-gen" style="color:#eee">0</span> RF/t</div>
+            </div>
+
+            <div class="detail-buttons" id="d-buttons">
+                </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- КОНФИГУРАЦИЯ ---
+    const LOGIC = {
+        targetTemp: 8000,
+        startTemp: 2000,
+        forceAutoTemp: 7500,
+        maxShield: 10000000,
+        maxFuel: 10000
+    };
+
+    // --- СОСТОЯНИЕ ---
+    let reactors = [];
+    let selectedReactorId = null;
+
+    // Инициализация реакторов
+    for(let i=0; i<5; i++) {
+        reactors.push({
+            id: i,
+            status: "offline", // offline, charging, online, stopping
+            temp: 20,
+            shield: 0,
+            fuel: 10000,
+            gen: 0,
+            drain: 0,
+            auto: true,
+            statusText: "ОТКЛЮЧЕН"
+        });
+    }
+
+    // --- СИМУЛЯТОР ФИЗИКИ (Тик каждый 100мс) ---
+    setInterval(() => {
+        reactors.forEach(r => {
+            // 1. Физика
+            if (r.status === "charging") {
+                r.shield += 100000; // Заряжаем щит
+                if (r.shield > LOGIC.maxShield) r.shield = LOGIC.maxShield;
+                r.drain = 500000;
+                
+                // Нагрев при зарядке
+                if (r.shield > LOGIC.maxShield * 0.5) {
+                    if (r.temp < LOGIC.startTemp) r.temp += 50;
+                }
+            } else if (r.status === "online") {
+                // Пытаемся держать температуру
+                if (r.temp < LOGIC.targetTemp) r.temp += 30;
+                else if (r.temp > LOGIC.targetTemp + 200) r.temp -= 20;
+                
+                // Трата топлива
+                r.fuel -= 1;
+                if (r.fuel < 0) r.fuel = 0;
+
+                // Генерация зависит от температуры
+                r.gen = Math.floor((r.temp / 8000) * 1500000); // 1.5M RF/t
+                r.drain = Math.floor(r.gen * 0.1); // Щит жрет 10%
+
+                // Логика АВТО
+                if (r.temp > LOGIC.forceAutoTemp) r.auto = true;
+            } else if (r.status === "stopping") {
+                r.temp -= 100;
+                r.gen = 0;
+                r.drain = 0;
+                if (r.temp <= 20) {
+                    r.temp = 20;
+                    r.status = "offline";
+                }
+            } else {
+                r.gen = 0;
+                r.drain = 0;
+            }
+
+            // 2. Статусы
+            if (r.status === "offline") r.statusText = "ОТКЛЮЧЕН";
+            else if (r.status === "charging") {
+                r.statusText = (r.temp >= LOGIC.startTemp) ? "ГОТОВ К ПУСКУ" : "ЗАРЯДКА";
+            }
+            else if (r.status === "online") r.statusText = "РАБОТАЕТ";
+            else if (r.status === "stopping") r.statusText = "ОСТЫВАНИЕ";
+
+        });
+
+        updateUI();
+    }, 100);
+
+    // --- ОТРИСОВКА ---
+    function updateUI() {
+        const container = document.getElementById('cards-container');
+        let html = '';
+        let totalGen = 0, totalDrain = 0, activeCount = 0;
+
+        reactors.forEach(r => {
+            if (r.status === "online") activeCount++;
+            totalGen += r.gen;
+            totalDrain += r.drain;
+
+            // Цвета статуса
+            let statusColor = "#777";
+            if(r.status === "online") statusColor = "#44FF44";
+            if(r.statusText === "ГОТОВ К ПУСКУ") statusColor = "#FFAA00";
+            if(r.status === "offline") statusColor = "#FF3333";
+
+            // Цвета баров
+            let tempColor = (r.temp > 8000) ? "c-danger" : ((r.temp > 7000) ? "c-warn" : "c-good");
+            let fuelColor = (r.fuel < 1000) ? "c-danger" : "c-fuel";
+
+            html += `
+            <div class="card" onclick="openDetail(${r.id})">
+                <div class="card-header">
+                    <span>R-${r.id + 1}</span>
+                    <span style="color: ${statusColor}; font-size: 18px">${r.statusText}</span>
+                </div>
+                
+                <div style="margin-top: 10px;">
+                    <div class="bar-container">
+                        <div class="bar-label">T: ${Math.floor(r.temp)}</div>
+                        <div class="bar-bg"><div class="bar-fill ${tempColor}" style="width: ${(r.temp/10000)*100}%"></div></div>
+                    </div>
+                    <div class="bar-container">
+                        <div class="bar-label">S: ${Math.floor((r.shield/LOGIC.maxShield)*100)}%</div>
+                        <div class="bar-bg"><div class="bar-fill c-shield" style="width: ${(r.shield/LOGIC.maxShield)*100}%"></div></div>
+                    </div>
+                    <div class="bar-container">
+                        <div class="bar-label">F: ${Math.floor((r.fuel/LOGIC.maxFuel)*100)}%</div>
+                        <div class="bar-bg"><div class="bar-fill ${fuelColor}" style="width: ${(r.fuel/LOGIC.maxFuel)*100}%"></div></div>
+                    </div>
+                </div>
+
+                <div class="btn-small">ПОДРОБНО</div>
+            </div>
+            `;
+        });
+
+        container.innerHTML = html;
+
+        // Обновление сводки
+        document.getElementById('total-active').innerText = `${activeCount} / 5`;
+        document.getElementById('total-gen').innerText = formatNum(totalGen);
+        document.getElementById('total-drain').innerText = formatNum(totalDrain);
+        const profit = totalGen - totalDrain;
+        const profitEl = document.getElementById('net-profit');
+        profitEl.innerText = formatNum(profit);
+        profitEl.style.color = profit > 0 ? "#44FF44" : "#FF3333";
+
+        // Обновление детального вида, если открыт
+        if (selectedReactorId !== null) {
+            updateDetailView(reactors[selectedReactorId]);
+        }
+    }
+
+    function formatNum(num) {
+        if (num > 1000000) return (num/1000000).toFixed(2) + "M";
+        if (num > 1000) return (num/1000).toFixed(1) + "k";
+        return Math.floor(num);
+    }
+
+    // --- ДЕТАЛЬНЫЙ ВИД ---
+    function openDetail(id) {
+        selectedReactorId = id;
+        document.getElementById('detail-view').style.display = 'flex';
+        updateDetailView(reactors[id]);
+    }
+
+    function closeDetail() {
+        selectedReactorId = null;
+        document.getElementById('detail-view').style.display = 'none';
+    }
+
+    function updateDetailView(r) {
+        document.getElementById('d-title').innerText = `УПРАВЛЕНИЕ РЕАКТОРОМ #${r.id + 1}`;
+        document.getElementById('d-temp').innerText = Math.floor(r.temp);
+        document.getElementById('d-shield').innerText = Math.floor((r.shield/LOGIC.maxShield)*100);
+        document.getElementById('d-fuel').innerText = Math.floor((r.fuel/LOGIC.maxFuel)*100);
+        document.getElementById('d-gen').innerText = formatNum(r.gen);
+
+        const btnContainer = document.getElementById('d-buttons');
+        let btns = '';
+
+        // Кнопка АВТО
+        let autoClass = r.auto ? "bg-good" : "c-gray";
+        let autoText = r.auto ? "АВТО: ВКЛ" : "АВТО: ВЫКЛ";
+        if (r.temp > LOGIC.forceAutoTemp) {
+            autoClass = "bg-warn";
+            autoText = "FORCED";
+        }
+        btns += `<div class="btn-large ${autoClass}" onclick="toggleAuto(${r.id})">${autoText}</div>`;
+
+        // Кнопка СТОП (Всегда)
+        btns += `<div class="btn-large bg-danger" onclick="doAction(${r.id}, 'stop')">СТОП</div>`;
+
+        // Кнопка ЗАРЯДИТЬ / ПУСК
+        if (r.status === "offline" || r.status === "charging") {
+            if (r.temp >= LOGIC.startTemp && r.status === "charging") {
+                btns += `<div class="btn-large bg-good" onclick="doAction(${r.id}, 'start')">ПУСК</div>`;
+            } else if (r.status === "offline") {
+                btns += `<div class="btn-large bg-accent" onclick="doAction(${r.id}, 'charge')">ЗАРЯДИТЬ</div>`;
+            } else {
+                 btns += `<div class="btn-large" style="background:#333; color:#555">ЗАРЯДКА...</div>`;
+            }
+        }
+
+        btnContainer.innerHTML = btns;
+    }
+
+    // --- ДЕЙСТВИЯ ---
+    function doAction(id, action) {
+        const r = reactors[id];
+        if (action === 'charge') r.status = "charging";
+        if (action === 'start') r.status = "online";
+        if (action === 'stop') r.status = "stopping";
+        updateUI();
+    }
+
+    function toggleAuto(id) {
+        const r = reactors[id];
+        if (r.temp < LOGIC.forceAutoTemp) {
+            r.auto = !r.auto;
+        }
+    }
+
+    // --- SETUP WIZARD ANIMATION ---
+    window.onload = function() {
+        const log = document.getElementById('setup-log');
+        const msgs = [
+            "Загрузка reactors.cfg...",
+            "Файл не найден.",
+            "Запуск мастера установки...",
+            "Реактор #1 найден: 4a2b...",
+            "Реактор #2 найден: 8c1d...",
+            "Реактор #3 найден: 1e9f...",
+            "Реактор #4 найден: 3b4a...",
+            "Реактор #5 найден: 7d2c...",
+            "Конфигурация сохранена.",
+            "Запуск интерфейса..."
+        ];
+
+        let delay = 500;
+        msgs.forEach((msg, i) => {
+            setTimeout(() => {
+                log.innerHTML += `<div>> ${msg}</div>`;
+                if (i === msgs.length - 1) {
+                    setTimeout(() => {
+                        document.getElementById('setup-wizard').style.display = 'none';
+                        resizeMonitor();
+                    }, 1000);
+                }
+            }, delay);
+            delay += 400;
+        });
+    };
+
+    // Масштабирование монитора под экран телефона
+    function resizeMonitor() {
+        const monitor = document.getElementById('monitor');
+        const scaleX = window.innerWidth / 1040;
+        const scaleY = window.innerHeight / 640;
+        const scale = Math.min(scaleX, scaleY, 1); // Не увеличивать больше оригинала
+
+        if (window.innerWidth < 1000) {
+            monitor.style.transform = `scale(${scale})`;
+        }
+    }
+
+    window.addEventListener('resize', resizeMonitor);
+
+</script>
+
+</body>
+</html>
