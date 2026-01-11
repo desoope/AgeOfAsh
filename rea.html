@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Draconic Control Simulator</title>
+    <title>Draconic Control 3x2</title>
     <style>
+        /* Шрифт, похожий на Minecraft/OpenComputers */
         @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
 
         body {
-            background-color: #000;
+            background-color: #050505;
             color: #eee;
             margin: 0;
             padding: 0;
@@ -19,530 +20,486 @@
             height: 100vh;
             overflow: hidden;
             user-select: none;
+            -webkit-user-select: none;
         }
 
-        /* Симуляция монитора OpenComputers */
-        #monitor {
-            width: 1000px; /* Условное разрешение */
-            height: 600px;
-            background-color: #111111;
+        /* КОНТЕЙНЕР МОНИТОРА (Соотношение 3:2) */
+        #monitor-frame {
             position: relative;
-            border: 20px solid #333;
-            border-radius: 10px;
-            box-shadow: 0 0 50px rgba(0, 153, 255, 0.2);
-            overflow: hidden;
-            transform-origin: center;
+            width: 95vw;
+            max-width: 1200px; /* Максимальная ширина */
+            aspect-ratio: 3 / 2; /* ЖЕСТКОЕ СООТНОШЕНИЕ 3:2 */
+            background-color: #111;
+            border: 15px solid #333;
+            box-shadow: 0 0 40px rgba(0, 153, 255, 0.15);
+            display: flex;
+            flex-direction: column;
         }
 
-        /* Сетка реакторов */
-        .grid-container {
+        /* СЕТКА (ВЕРХНЯЯ ЧАСТЬ) - 5 КАРТОЧЕК */
+        .top-section {
+            height: 65%; /* 65% высоты экрана под реакторы */
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            gap: 10px;
-            padding: 10px;
-            height: 60%;
+            gap: 0.5%;
+            padding: 1%;
+            background-color: #111;
         }
 
         .card {
             background-color: #222;
-            border: 1px solid #333;
-            padding: 10px;
+            border: 2px solid #222;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            padding: 5px;
+            position: relative;
             cursor: pointer;
-            transition: background 0.1s;
         }
-
-        .card:active {
-            background-color: #333;
-        }
+        
+        .card:active { border-color: #fff; }
 
         .card-header {
-            color: #0099FF;
-            font-size: 24px;
             display: flex;
             justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 1.8cqw; /* Шрифт зависит от ширины контейнера */
         }
 
-        .status-text {
-            font-size: 20px;
+        .lbl-blue { color: #0099FF; font-weight: bold; }
+        .lbl-gray { color: #555; }
+        .lbl-good { color: #44FF44; }
+        .lbl-warn { color: #FFAA00; }
+        .lbl-bad  { color: #FF3333; }
+
+        /* ПРОГРЕСС БАРЫ */
+        .bar-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex-grow: 1;
         }
 
-        /* Прогресс бары */
-        .bar-container {
-            margin-bottom: 8px;
-        }
-
-        .bar-label {
-            font-size: 18px;
-            margin-bottom: 2px;
-            color: #eee;
-        }
-
-        .bar-bg {
-            height: 16px;
-            background-color: #333;
+        .bar-row {
             width: 100%;
-            position: relative;
+        }
+
+        .bar-text {
+            font-size: 1.5cqw;
+            margin-bottom: 2px;
+            white-space: nowrap;
+        }
+
+        .bar-track {
+            width: 100%;
+            height: 1.2cqw;
+            background-color: #333;
         }
 
         .bar-fill {
             height: 100%;
             width: 0%;
-            transition: width 0.5s linear;
+            transition: width 0.2s linear;
         }
 
-        .btn-small {
+        .btn-detail {
+            margin-top: auto;
             background-color: #0099FF;
-            color: #111;
+            color: #000;
             text-align: center;
-            padding: 5px;
-            margin-top: 5px;
-            font-size: 20px;
-            cursor: pointer;
+            font-size: 1.5cqw;
+            padding: 2px 0;
+            font-weight: bold;
         }
 
-        /* Нижняя панель */
-        .bottom-panel {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
+        /* ИНФО (НИЖНЯЯ ЧАСТЬ) */
+        .bottom-section {
             height: 35%;
-            border-top: 2px solid #0099FF;
             background-color: #181818;
+            border-top: 4px solid #0099FF;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            position: relative;
         }
 
-        .summary-title {
+        .info-header {
+            position: absolute;
+            top: -16px;
             background-color: #111;
             color: #0099FF;
-            padding: 0 10px;
-            margin-top: -20px;
-            font-size: 24px;
+            padding: 0 15px;
+            font-size: 2cqw;
         }
 
-        .summary-grid {
+        .info-grid {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
-            width: 100%;
+            width: 90%;
             text-align: center;
-            margin-top: 20px;
-            font-size: 28px;
+            font-size: 2.2cqw;
+            margin-bottom: 15px;
         }
 
-        /* Детальное окно (Overlay) */
-        #detail-view {
+        .profit-text {
+            font-size: 3cqw;
+            color: #44FF44;
+        }
+
+        .footer {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #111;
-            z-index: 10;
-            display: none; /* Скрыто по умолчанию */
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            bottom: 5px;
+            left: 10px;
+            font-size: 1.2cqw;
+            color: #444;
         }
 
-        .detail-box {
+        /* ДЕТАЛЬНОЕ ОКНО (OVERLAY) */
+        #detail-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.95);
+            z-index: 100;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .detail-panel {
             width: 80%;
             height: 80%;
             background-color: #222;
-            border: 2px solid #444;
+            border: 2px solid #555;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             padding: 20px;
             position: relative;
         }
 
-        .detail-title {
-            color: #0099FF;
-            font-size: 40px;
-            text-align: center;
-            margin-bottom: 40px;
-            border-bottom: 1px solid #444;
-            padding-bottom: 10px;
-        }
-
-        .detail-info {
-            font-size: 32px;
-            line-height: 1.5;
-            margin-bottom: 40px;
-        }
-
-        .detail-buttons {
+        .detail-title { font-size: 4cqw; color: #0099FF; margin-bottom: 20px; border-bottom: 2px solid #444; width: 100%; text-align: center; }
+        .detail-stats { font-size: 3cqw; width: 100%; line-height: 1.6; }
+        
+        .detail-btns {
+            margin-top: auto;
             display: flex;
-            justify-content: center;
             gap: 20px;
-        }
-
-        .btn-large {
-            padding: 15px 30px;
-            font-size: 30px;
-            cursor: pointer;
-            border: none;
-            min-width: 150px;
-            text-align: center;
-        }
-
-        .btn-back {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background-color: #eee;
-            color: #111;
-            padding: 5px 15px;
-            font-size: 24px;
-            cursor: pointer;
-        }
-
-        /* Утилиты цветов */
-        .c-good { color: #44FF44; background-color: #44FF44; }
-        .c-warn { color: #FFAA00; background-color: #FFAA00; }
-        .c-danger { color: #FF3333; background-color: #FF3333; }
-        .c-shield { background-color: #00FFFF; }
-        .c-fuel { background-color: #00AA00; }
-        .c-accent { background-color: #0099FF; }
-        .bg-good { background-color: #44FF44; color: #000; }
-        .bg-danger { background-color: #FF3333; color: #000; }
-        .bg-accent { background-color: #0099FF; color: #000; }
-        .bg-warn { background-color: #FFAA00; color: #000; }
-        .c-gray { color: #777; }
-
-        /* Setup Wizard */
-        #setup-wizard {
-            position: absolute;
-            top: 0;
-            left: 0;
             width: 100%;
-            height: 100%;
-            background-color: #000;
-            z-index: 20;
+            justify-content: center;
+        }
+
+        .oc-btn {
+            border: none;
+            padding: 15px 30px;
+            font-family: 'VT323', monospace;
+            font-size: 2.5cqw;
+            cursor: pointer;
+            min-width: 120px;
+        }
+        
+        .btn-close { position: absolute; top: 10px; right: 10px; background: #ddd; color: #000; font-size: 2cqw; padding: 5px 10px; cursor: pointer; }
+
+        /* ЦВЕТА */
+        .bg-good { background: #44FF44; color: #000; }
+        .bg-bad { background: #FF3333; color: #fff; }
+        .bg-warn { background: #FFAA00; color: #000; }
+        .bg-blue { background: #0099FF; color: #000; }
+        .bg-gray { background: #444; color: #aaa; }
+
+        .c-shield { background: #00FFFF; }
+        .c-fuel { background: #00AA00; }
+        .c-heat { background: linear-gradient(90deg, #44FF44, #FFAA00, #FF3333); }
+
+        .blink { animation: blinker 1s linear infinite; background-color: #FF3333 !important; color: #fff; }
+        @keyframes blinker { 50% { opacity: 0.5; } }
+
+        /* WIZARD */
+        #wizard {
+            position: absolute;
+            top:0; left:0; width:100%; height:100%;
+            background:#000;
+            z-index:200;
+            color: #0f0;
+            font-size: 2cqw;
+            padding: 40px;
+            box-sizing: border-box;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            align-items: center;
-            font-size: 30px;
-            color: #00FF00;
-            text-align: left;
         }
     </style>
 </head>
 <body>
 
-<div id="monitor">
-    
-    <div id="setup-wizard">
-        <div style="width: 80%">
-            <div>> СИСТЕМА УПРАВЛЕНИЯ РЕАКТОРАМИ (DesOope OS)</div>
-            <div>> Проверка конфигурации...</div>
-            <div id="setup-log"></div>
-        </div>
-    </div>
-
-    <div class="grid-container" id="cards-container">
+    <div id="monitor-frame">
+        
+        <div id="wizard">
+            <div id="wizard-text">Initializing DesOope OS...</div>
         </div>
 
-    <div class="bottom-panel">
-        <div class="summary-title">ОБЩАЯ СВОДКА СИСТЕМЫ</div>
-        <div class="summary-grid">
-            <div style="color: #eee">АКТИВНЫЕ: <span id="total-active" style="color:#44FF44">0 / 5</span></div>
-            <div style="color: #44FF44">ВЫРАБОТКА: <span id="total-gen">0</span> RF/t</div>
-            <div style="color: #FFAA00">ПОТРЕБЛЕНИЕ: <span id="total-drain">0</span> RF/t</div>
-        </div>
-        <div style="margin-top: 20px; font-size: 28px; color: #44FF44">
-            ЧИСТАЯ ПРИБЫЛЬ: <span id="net-profit">0</span> RF/t
-        </div>
-        <div style="position: absolute; bottom: 5px; font-size: 16px; color: #555;">DesOope Control System v3.0 Mobile</div>
-    </div>
+        <div class="top-section" id="grid"></div>
 
-    <div id="detail-view">
-        <div class="detail-box">
-            <div class="btn-back" onclick="closeDetail()">[X] НАЗАД</div>
-            <div class="detail-title" id="d-title">РЕАКТОР #1</div>
-            
-            <div class="detail-info">
-                <div>ТЕМПЕРАТУРА: <span id="d-temp" style="color:#44FF44">0</span> C</div>
-                <div>ЗАРЯД ЩИТА: <span id="d-shield" style="color:#00FFFF">0</span> %</div>
-                <div>ТОПЛИВО: <span id="d-fuel" style="color:#00AA00">100</span> %</div>
-                <div>ГЕНЕРАЦИЯ: <span id="d-gen" style="color:#eee">0</span> RF/t</div>
+        <div class="bottom-section">
+            <div class="info-header">ОБЩАЯ СВОДКА СИСТЕМЫ</div>
+            <div class="info-grid">
+                <div style="color: #eee">АКТИВНЫЕ: <span id="s-active" style="color:#44FF44">0/5</span></div>
+                <div style="color: #44FF44">ГЕНЕРАЦИЯ: <span id="s-gen">0</span> RF/t</div>
+                <div style="color: #FFAA00">ПОТРЕБЛЕНИЕ: <span id="s-drain">0</span> RF/t</div>
             </div>
-
-            <div class="detail-buttons" id="d-buttons">
-                </div>
+            <div class="profit-text">
+                ПРИБЫЛЬ: <span id="s-profit">0</span> RF/t
+            </div>
+            <div class="footer">DesOope Control System v3.2 | Resolution: 3x2 High Density</div>
         </div>
-    </div>
 
-</div>
+        <div id="detail-overlay">
+            <div class="detail-panel">
+                <div class="btn-close" onclick="closeDetail()">[X] НАЗАД</div>
+                <div class="detail-title" id="d-title">РЕАКТОР #1</div>
+                <div class="detail-stats">
+                    <div>Температура: <span id="d-temp" style="color:#44FF44">0</span> C</div>
+                    <div>Мощность поля: <span id="d-shield" style="color:#00FFFF">0</span> %</div>
+                    <div>Топливо: <span id="d-fuel" style="color:#00AA00">100</span> %</div>
+                    <div>Генерация: <span id="d-gen" style="color:#eee">0</span> RF/t</div>
+                    <div>Поток выхода: <span id="d-out" style="color:#FFAA00">0</span> RF/t</div>
+                </div>
+                <div class="detail-btns" id="d-btns">
+                    </div>
+            </div>
+        </div>
+
+    </div>
 
 <script>
-    // --- КОНФИГУРАЦИЯ ---
+    // === КОНФИГУРАЦИЯ ===
     const LOGIC = {
-        targetTemp: 8000,
+        maxTemp: 8000,
         startTemp: 2000,
-        forceAutoTemp: 7500,
+        forceAuto: 7500,
         maxShield: 10000000,
         maxFuel: 10000
     };
 
-    // --- СОСТОЯНИЕ ---
-    let reactors = [];
-    let selectedReactorId = null;
+    // Данные реакторов
+    let reactors = Array.from({length: 5}, (_, i) => ({
+        id: i,
+        state: 'offline', // offline, charging, warm_ready, online, stopping
+        temp: 20,
+        shield: 0,
+        fuel: 10000,
+        gen: 0,
+        drain: 0,
+        outFlow: 0,
+        auto: true
+    }));
 
-    // Инициализация реакторов
-    for(let i=0; i<5; i++) {
-        reactors.push({
-            id: i,
-            status: "offline", // offline, charging, online, stopping
-            temp: 20,
-            shield: 0,
-            fuel: 10000,
-            gen: 0,
-            drain: 0,
-            auto: true,
-            statusText: "ОТКЛЮЧЕН"
-        });
-    }
+    let selectedId = null;
 
-    // --- СИМУЛЯТОР ФИЗИКИ (Тик каждый 100мс) ---
+    // === СИМУЛЯТОР (LOOP) ===
     setInterval(() => {
         reactors.forEach(r => {
-            // 1. Физика
-            if (r.status === "charging") {
-                r.shield += 100000; // Заряжаем щит
+            if (r.state === 'charging') {
+                // Зарядка щита
+                r.shield += 80000;
                 if (r.shield > LOGIC.maxShield) r.shield = LOGIC.maxShield;
                 r.drain = 500000;
                 
-                // Нагрев при зарядке
-                if (r.shield > LOGIC.maxShield * 0.5) {
-                    if (r.temp < LOGIC.startTemp) r.temp += 50;
+                // Легкий нагрев при зарядке
+                if (r.shield > LOGIC.maxShield * 0.5 && r.temp < 2100) {
+                    r.temp += 15; 
                 }
-            } else if (r.status === "online") {
-                // Пытаемся держать температуру
-                if (r.temp < LOGIC.targetTemp) r.temp += 30;
-                else if (r.temp > LOGIC.targetTemp + 200) r.temp -= 20;
                 
-                // Трата топлива
-                r.fuel -= 1;
+                // Готов к пуску?
+                if (r.temp >= LOGIC.startTemp) r.state = 'warm_ready';
+
+            } else if (r.state === 'warm_ready') {
+                // Ждет нажатия кнопки, поддерживает температуру
+                if (r.temp < 2000) r.temp += 10;
+                r.shield = LOGIC.maxShield; // Держим щит полным
+
+            } else if (r.state === 'online') {
+                // РАБОТА
+                // 1. Температура стремится к 8000
+                if (r.temp < LOGIC.maxTemp) r.temp += 25;
+                else if (r.temp > LOGIC.maxTemp + 100) r.temp -= 15;
+
+                // 2. Генерация (зависит от темп)
+                r.gen = Math.floor((r.temp / 8000) * 1200000); // 1.2M макс
+                r.outFlow = Math.floor(r.gen * 0.9); // Выкачиваем 90%
+                r.drain = Math.floor(r.gen * 0.1);   // 10% на щит
+
+                // 3. Топливо тратится
+                r.fuel -= 2; 
                 if (r.fuel < 0) r.fuel = 0;
 
-                // Генерация зависит от температуры
-                r.gen = Math.floor((r.temp / 8000) * 1500000); // 1.5M RF/t
-                r.drain = Math.floor(r.gen * 0.1); // Щит жрет 10%
+                // 4. Авто-режим форсированный
+                if (r.temp > LOGIC.forceAuto) r.auto = true;
 
-                // Логика АВТО
-                if (r.temp > LOGIC.forceAutoTemp) r.auto = true;
-            } else if (r.status === "stopping") {
-                r.temp -= 100;
+            } else if (r.state === 'stopping') {
+                // Остывание
+                r.temp -= 80;
                 r.gen = 0;
                 r.drain = 0;
                 if (r.temp <= 20) {
                     r.temp = 20;
-                    r.status = "offline";
+                    r.state = 'offline';
                 }
             } else {
-                r.gen = 0;
-                r.drain = 0;
+                // Offline
+                r.gen = 0; r.drain = 0; r.outFlow = 0;
             }
-
-            // 2. Статусы
-            if (r.status === "offline") r.statusText = "ОТКЛЮЧЕН";
-            else if (r.status === "charging") {
-                r.statusText = (r.temp >= LOGIC.startTemp) ? "ГОТОВ К ПУСКУ" : "ЗАРЯДКА";
-            }
-            else if (r.status === "online") r.statusText = "РАБОТАЕТ";
-            else if (r.status === "stopping") r.statusText = "ОСТЫВАНИЕ";
-
         });
-
-        updateUI();
+        render();
     }, 100);
 
-    // --- ОТРИСОВКА ---
-    function updateUI() {
-        const container = document.getElementById('cards-container');
+    // === РЕНДЕР ===
+    function render() {
+        const grid = document.getElementById('grid');
         let html = '';
-        let totalGen = 0, totalDrain = 0, activeCount = 0;
+        let totalGen = 0, totalDrain = 0, activeCnt = 0;
 
         reactors.forEach(r => {
-            if (r.status === "online") activeCount++;
+            if(r.state === 'online') activeCnt++;
             totalGen += r.gen;
             totalDrain += r.drain;
 
-            // Цвета статуса
-            let statusColor = "#777";
-            if(r.status === "online") statusColor = "#44FF44";
-            if(r.statusText === "ГОТОВ К ПУСКУ") statusColor = "#FFAA00";
-            if(r.status === "offline") statusColor = "#FF3333";
+            // Цвета и тексты
+            let statusTxt = "ОТКЛЮЧЕН";
+            let statusClass = "lbl-bad";
+            if (r.state === 'charging') { statusTxt = "ЗАРЯДКА"; statusClass = "lbl-blue"; }
+            if (r.state === 'warm_ready') { statusTxt = "ГОТОВ К ПУСКУ"; statusClass = "lbl-warn"; }
+            if (r.state === 'online') { statusTxt = "РАБОТА"; statusClass = "lbl-good"; }
+            if (r.state === 'stopping') { statusTxt = "ОСТЫВАНИЕ"; statusClass = "lbl-gray"; }
 
-            // Цвета баров
-            let tempColor = (r.temp > 8000) ? "c-danger" : ((r.temp > 7000) ? "c-warn" : "c-good");
-            let fuelColor = (r.fuel < 1000) ? "c-danger" : "c-fuel";
+            // Бары
+            let tempPct = (r.temp / 10000) * 100;
+            let shieldPct = (r.shield / LOGIC.maxShield) * 100;
+            let fuelPct = (r.fuel / LOGIC.maxFuel) * 100;
+
+            let fuelBarClass = "c-fuel";
+            if (fuelPct < 10) fuelBarClass = "blink"; // Мигание если мало топлива
 
             html += `
             <div class="card" onclick="openDetail(${r.id})">
                 <div class="card-header">
-                    <span>R-${r.id + 1}</span>
-                    <span style="color: ${statusColor}; font-size: 18px">${r.statusText}</span>
+                    <span class="lbl-blue">R-${r.id+1}</span>
+                    <span class="${statusClass}">${statusTxt}</span>
                 </div>
-                
-                <div style="margin-top: 10px;">
-                    <div class="bar-container">
-                        <div class="bar-label">T: ${Math.floor(r.temp)}</div>
-                        <div class="bar-bg"><div class="bar-fill ${tempColor}" style="width: ${(r.temp/10000)*100}%"></div></div>
+                <div class="bar-group">
+                    <div class="bar-row">
+                        <div class="bar-text">T: ${Math.floor(r.temp)}C</div>
+                        <div class="bar-track"><div class="bar-fill c-heat" style="width:${tempPct}%"></div></div>
                     </div>
-                    <div class="bar-container">
-                        <div class="bar-label">S: ${Math.floor((r.shield/LOGIC.maxShield)*100)}%</div>
-                        <div class="bar-bg"><div class="bar-fill c-shield" style="width: ${(r.shield/LOGIC.maxShield)*100}%"></div></div>
+                    <div class="bar-row">
+                        <div class="bar-text">S: ${Math.floor(shieldPct)}%</div>
+                        <div class="bar-track"><div class="bar-fill c-shield" style="width:${shieldPct}%"></div></div>
                     </div>
-                    <div class="bar-container">
-                        <div class="bar-label">F: ${Math.floor((r.fuel/LOGIC.maxFuel)*100)}%</div>
-                        <div class="bar-bg"><div class="bar-fill ${fuelColor}" style="width: ${(r.fuel/LOGIC.maxFuel)*100}%"></div></div>
+                    <div class="bar-row">
+                        <div class="bar-text">F: ${Math.floor(fuelPct)}%</div>
+                        <div class="bar-track"><div class="bar-fill ${fuelBarClass}" style="width:${fuelPct}%"></div></div>
                     </div>
                 </div>
-
-                <div class="btn-small">ПОДРОБНО</div>
-            </div>
-            `;
+                <div class="btn-detail">ПОДРОБНО</div>
+            </div>`;
         });
 
-        container.innerHTML = html;
+        grid.innerHTML = html;
 
-        // Обновление сводки
-        document.getElementById('total-active').innerText = `${activeCount} / 5`;
-        document.getElementById('total-gen').innerText = formatNum(totalGen);
-        document.getElementById('total-drain').innerText = formatNum(totalDrain);
-        const profit = totalGen - totalDrain;
-        const profitEl = document.getElementById('net-profit');
-        profitEl.innerText = formatNum(profit);
-        profitEl.style.color = profit > 0 ? "#44FF44" : "#FF3333";
+        // Сводка
+        document.getElementById('s-active').innerText = `${activeCnt}/5`;
+        document.getElementById('s-gen').innerText = fmt(totalGen);
+        document.getElementById('s-drain').innerText = fmt(totalDrain);
+        let profit = totalGen - totalDrain;
+        let pEl = document.getElementById('s-profit');
+        pEl.innerText = fmt(profit);
+        pEl.style.color = profit > 0 ? '#44FF44' : '#FF3333';
 
-        // Обновление детального вида, если открыт
-        if (selectedReactorId !== null) {
-            updateDetailView(reactors[selectedReactorId]);
-        }
+        if (selectedId !== null) updateDetail(reactors[selectedId]);
     }
 
-    function formatNum(num) {
-        if (num > 1000000) return (num/1000000).toFixed(2) + "M";
-        if (num > 1000) return (num/1000).toFixed(1) + "k";
-        return Math.floor(num);
-    }
-
-    // --- ДЕТАЛЬНЫЙ ВИД ---
+    // === ДЕТАЛЬНОЕ ОКНО ===
     function openDetail(id) {
-        selectedReactorId = id;
-        document.getElementById('detail-view').style.display = 'flex';
-        updateDetailView(reactors[id]);
+        selectedId = id;
+        document.getElementById('detail-overlay').style.display = 'flex';
+        render();
     }
 
     function closeDetail() {
-        selectedReactorId = null;
-        document.getElementById('detail-view').style.display = 'none';
+        selectedId = null;
+        document.getElementById('detail-overlay').style.display = 'none';
     }
 
-    function updateDetailView(r) {
-        document.getElementById('d-title').innerText = `УПРАВЛЕНИЕ РЕАКТОРОМ #${r.id + 1}`;
+    function updateDetail(r) {
+        document.getElementById('d-title').innerText = `РЕАКТОР #${r.id+1} - УПРАВЛЕНИЕ`;
         document.getElementById('d-temp').innerText = Math.floor(r.temp);
         document.getElementById('d-shield').innerText = Math.floor((r.shield/LOGIC.maxShield)*100);
         document.getElementById('d-fuel').innerText = Math.floor((r.fuel/LOGIC.maxFuel)*100);
-        document.getElementById('d-gen').innerText = formatNum(r.gen);
+        document.getElementById('d-gen').innerText = fmt(r.gen);
+        document.getElementById('d-out').innerText = fmt(r.outFlow);
 
-        const btnContainer = document.getElementById('d-buttons');
-        let btns = '';
+        let btnsHtml = '';
 
         // Кнопка АВТО
-        let autoClass = r.auto ? "bg-good" : "c-gray";
-        let autoText = r.auto ? "АВТО: ВКЛ" : "АВТО: ВЫКЛ";
-        if (r.temp > LOGIC.forceAutoTemp) {
-            autoClass = "bg-warn";
-            autoText = "FORCED";
-        }
-        btns += `<div class="btn-large ${autoClass}" onclick="toggleAuto(${r.id})">${autoText}</div>`;
+        let autoStyle = r.auto ? "bg-good" : "bg-gray";
+        let autoTxt = r.auto ? "АВТО: ВКЛ" : "АВТО: ВЫКЛ";
+        if (r.temp > LOGIC.forceAuto) { autoStyle = "bg-warn"; autoTxt = "FORCED"; }
+        btnsHtml += `<button class="oc-btn ${autoStyle}" onclick="toggleAuto(${r.id})">${autoTxt}</button>`;
 
-        // Кнопка СТОП (Всегда)
-        btns += `<div class="btn-large bg-danger" onclick="doAction(${r.id}, 'stop')">СТОП</div>`;
+        // СТОП (всегда)
+        btnsHtml += `<button class="oc-btn bg-bad" onclick="action(${r.id}, 'stop')">СТОП</button>`;
 
-        // Кнопка ЗАРЯДИТЬ / ПУСК
-        if (r.status === "offline" || r.status === "charging") {
-            if (r.temp >= LOGIC.startTemp && r.status === "charging") {
-                btns += `<div class="btn-large bg-good" onclick="doAction(${r.id}, 'start')">ПУСК</div>`;
-            } else if (r.status === "offline") {
-                btns += `<div class="btn-large bg-accent" onclick="doAction(${r.id}, 'charge')">ЗАРЯДИТЬ</div>`;
-            } else {
-                 btns += `<div class="btn-large" style="background:#333; color:#555">ЗАРЯДКА...</div>`;
-            }
+        // КОНТЕКСТНАЯ КНОПКА (ЗАРЯДИТЬ / ПУСК)
+        if (r.state === 'offline') {
+            btnsHtml += `<button class="oc-btn bg-blue" onclick="action(${r.id}, 'charge')">ЗАРЯДИТЬ</button>`;
+        } else if (r.state === 'charging') {
+            btnsHtml += `<button class="oc-btn bg-gray">ЗАРЯДКА...</button>`;
+        } else if (r.state === 'warm_ready') {
+            btnsHtml += `<button class="oc-btn bg-good blink" onclick="action(${r.id}, 'start')">ПУСК</button>`;
         }
 
-        btnContainer.innerHTML = btns;
+        document.getElementById('d-btns').innerHTML = btnsHtml;
     }
 
-    // --- ДЕЙСТВИЯ ---
-    function doAction(id, action) {
-        const r = reactors[id];
-        if (action === 'charge') r.status = "charging";
-        if (action === 'start') r.status = "online";
-        if (action === 'stop') r.status = "stopping";
-        updateUI();
+    function action(id, type) {
+        let r = reactors[id];
+        if (type === 'charge') r.state = 'charging';
+        if (type === 'start') r.state = 'online';
+        if (type === 'stop') r.state = 'stopping';
     }
 
     function toggleAuto(id) {
-        const r = reactors[id];
-        if (r.temp < LOGIC.forceAutoTemp) {
-            r.auto = !r.auto;
-        }
+        let r = reactors[id];
+        if (r.temp < LOGIC.forceAuto) r.auto = !r.auto;
     }
 
-    // --- SETUP WIZARD ANIMATION ---
-    window.onload = function() {
-        const log = document.getElementById('setup-log');
-        const msgs = [
-            "Загрузка reactors.cfg...",
-            "Файл не найден.",
-            "Запуск мастера установки...",
-            "Реактор #1 найден: 4a2b...",
-            "Реактор #2 найден: 8c1d...",
-            "Реактор #3 найден: 1e9f...",
-            "Реактор #4 найден: 3b4a...",
-            "Реактор #5 найден: 7d2c...",
-            "Конфигурация сохранена.",
-            "Запуск интерфейса..."
+    function fmt(n) {
+        if (n > 1000000) return (n/1000000).toFixed(2) + "M";
+        if (n > 1000) return (n/1000).toFixed(1) + "k";
+        return Math.floor(n);
+    }
+
+    // === WIZARD ANIMATION ===
+    window.onload = () => {
+        const wiz = document.getElementById('wizard-text');
+        const steps = [
+            "Booting DesOope OS...",
+            "Checking peripherals...",
+            "Found 5 Draconic Reactors...",
+            "Loading reactors.cfg...",
+            "Starting Interface..."
         ];
-
-        let delay = 500;
-        msgs.forEach((msg, i) => {
-            setTimeout(() => {
-                log.innerHTML += `<div>> ${msg}</div>`;
-                if (i === msgs.length - 1) {
-                    setTimeout(() => {
-                        document.getElementById('setup-wizard').style.display = 'none';
-                        resizeMonitor();
-                    }, 1000);
-                }
-            }, delay);
-            delay += 400;
-        });
-    };
-
-    // Масштабирование монитора под экран телефона
-    function resizeMonitor() {
-        const monitor = document.getElementById('monitor');
-        const scaleX = window.innerWidth / 1040;
-        const scaleY = window.innerHeight / 640;
-        const scale = Math.min(scaleX, scaleY, 1); // Не увеличивать больше оригинала
-
-        if (window.innerWidth < 1000) {
-            monitor.style.transform = `scale(${scale})`;
-        }
+        let i = 0;
+        let int = setInterval(() => {
+            if(i >= steps.length) {
+                clearInterval(int);
+                document.getElementById('wizard').style.display = 'none';
+                return;
+            }
+            wiz.innerHTML += `<br>> ${steps[i]}`;
+            i++;
+        }, 600);
     }
-
-    window.addEventListener('resize', resizeMonitor);
 
 </script>
-
 </body>
 </html>
